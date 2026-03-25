@@ -718,7 +718,7 @@ function groupByHour(entries) {
   return groups;
 }
 
-function TodayPage({ entries, onDelete }) {
+function TodayPage({ entries, onDelete, setTab }) {
   const bottomRef = useRef(null);
   const todayEntries = entries
     .filter((e) => e.date === getTodayKey())
@@ -741,6 +741,7 @@ function TodayPage({ entries, onDelete }) {
           <div className="header-date">{dayStr}</div>
           <div className="header-title">Your <em>Today</em></div>
         </div>
+        <button onClick={() => setTab("settings")} style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "var(--text-muted)" }}>⚙️</button>
       </div>
 
       {todayEntries.length > 0 && (
@@ -870,7 +871,7 @@ function calcStreak(byDate) {
 const DOW = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
-function HistoryPage({ entries }) {
+function HistoryPage({ entries, setTab }) {
   const [selectedDate, setSelectedDate] = useState(null);
 
   const byDate = {};
@@ -896,6 +897,7 @@ function HistoryPage({ entries }) {
           <div className="header-date">Archive</div>
           <div className="header-title">Your <em>History</em></div>
         </div>
+        <button onClick={() => setTab("settings")} style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "var(--text-muted)" }}>⚙️</button>
       </div>
 
       {/* Stats row */}
@@ -1044,7 +1046,7 @@ function getLast7Days() {
   return days;
 }
 
-function InsightsPage({ entries }) {
+function InsightsPage({ entries, setTab }) {
   const [view, setView] = useState("week"); // "week" | "timeofday"
 
   const byDate = {};
@@ -1087,6 +1089,7 @@ function InsightsPage({ entries }) {
           <div className="header-date">Patterns</div>
           <div className="header-title">Your <em>Insights</em></div>
         </div>
+        <button onClick={() => setTab("settings")} style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "var(--text-muted)" }}>⚙️</button>
       </div>
 
       {/* Tab switcher */}
@@ -1630,7 +1633,6 @@ const NAV_ITEMS = [
   { id: "today",    icon: "🌿", label: "Today"    },
   { id: "history",  icon: "📅", label: "History"  },
   { id: "insights", icon: "✨", label: "Insights" },
-  { id: "settings", icon: "⚙️", label: "Settings" },
 ];
 
 const SETTINGS_KEY = "timeline_journal_settings";
@@ -1693,7 +1695,7 @@ export default function App() {
   const [sleepHour, setSleepHourRaw]= useState(saved?.sleep ?? 23);
   const [tab,       setTab]         = useState("today");
   const [modalOpen, setModalOpen]   = useState(false);
-  const [entries,   setEntries]     = useState(() => seedDemoEntries());
+  const [entries,   setEntries]     = useState(() => loadEntries());
 
   // Persist settings whenever they change
   useEffect(() => {
@@ -1741,9 +1743,9 @@ export default function App() {
           <OnboardingScreen onComplete={handleOnboardingComplete} />
         )}
 
-        {tab === "today"    && <TodayPage    entries={entries} onDelete={handleDelete} />}
-        {tab === "history"  && <HistoryPage  entries={entries} />}
-        {tab === "insights" && <InsightsPage entries={entries} />}
+        {tab === "today"    && <TodayPage    entries={entries} onDelete={handleDelete} setTab={setTab} />}
+        {tab === "history"  && <HistoryPage  entries={entries} setTab={setTab} />}
+        {tab === "insights" && <InsightsPage entries={entries} setTab={setTab} />}
         {tab === "settings" && (
           <SettingsPage
             dark={dark}         setDark={setDarkMode}
@@ -1753,13 +1755,15 @@ export default function App() {
           />
         )}
 
-        <button
-          className={`fab${modalOpen ? " open" : ""}`}
-          onClick={() => setModalOpen(!modalOpen)}
-          aria-label="Add entry"
-        >
-          +
-        </button>
+        {tab === "today" && (
+          <button
+            className={`fab${modalOpen ? " open" : ""}`}
+            onClick={() => setModalOpen(!modalOpen)}
+            aria-label="Add entry"
+          >
+            +
+          </button>
+        )}
 
         <nav className="bottom-nav">
           {NAV_ITEMS.map((item) => (
