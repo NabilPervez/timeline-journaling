@@ -11,6 +11,16 @@ const EMOJIS = [
   { icon: "🤩", label: "Excited", color: "#F5943A" },
   { icon: "😤", label: "Frustrated", color: "#D47A5A" },
   { icon: "😐", label: "Neutral", color: "#B0A898" },
+  { icon: "🥹", label: "Grateful", color: "#E0A3A9" },
+  { icon: "😎", label: "Confident", color: "#F5C842" },
+  { icon: "🤔", label: "Thoughtful", color: "#7BA7D4" },
+  { icon: "🫠", label: "Overwhelmed", color: "#A0A8B8" },
+  { icon: "🥳", label: "Joyful", color: "#F5943A" },
+  { icon: "🤒", label: "Unwell", color: "#A0A8B8" },
+  { icon: "🤬", label: "Furious", color: "#E8614A" },
+  { icon: "🥰", label: "Loved", color: "#E09E96" },
+  { icon: "🥺", label: "Insecure", color: "#B0A898" },
+  { icon: "👻", label: "Playful", color: "#D4AB5A" },
 ];
 
 const STORAGE_KEY = "timeline_journal_entries";
@@ -742,25 +752,28 @@ function TodayPage({ entries, onDelete, setTab }) {
 
   const now = new Date();
   const dayStr = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const dayOfWeek = now.toLocaleDateString("en-US", { weekday: "long" });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-      <div className="header">
-        <div className="header-left">
-          <div className="header-date">{dayStr}</div>
-          <div className="header-title">Your <em>Today</em></div>
-        </div>
-        <button onClick={() => setTab("settings")} style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "var(--text-muted)" }}>⚙️</button>
-      </div>
-
-      {todayEntries.length > 0 && (
-        <div style={{ padding: "0 24px 8px" }}>
-          <div className="entry-count">
-            <span>✦</span>
-            <span><strong>{todayEntries.length}</strong> {todayEntries.length === 1 ? "check-in" : "check-ins"} today</span>
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "auto" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--bg)", borderBottom: "1px solid var(--border)", marginBottom: 12 }}>
+        <div className="header" style={{ paddingBottom: todayEntries.length > 0 ? 12 : 20 }}>
+          <div className="header-left">
+            <div className="header-date">{dayStr}</div>
+            <div className="header-title">Your <em>{dayOfWeek}</em></div>
           </div>
+          <button onClick={() => setTab("settings")} style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "var(--text-muted)" }}>⚙️</button>
         </div>
-      )}
+
+        {todayEntries.length > 0 && (
+          <div style={{ padding: "0 24px 8px" }}>
+            <div className="entry-count" style={{ marginBottom: 8 }}>
+              <span>✦</span>
+              <span><strong>{todayEntries.length}</strong> {todayEntries.length === 1 ? "check-in" : "check-ins"} today</span>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="timeline">
         {todayEntries.length === 0 ? (
@@ -901,30 +914,32 @@ function HistoryPage({ entries, setTab }) {
 
   return (
     <div style={{ flex: 1, overflowY: "auto" }}>
-      <div className="header">
-        <div className="header-left">
-          <div className="header-date">Archive</div>
-          <div className="header-title">Your <em>History</em></div>
-        </div>
-        <button onClick={() => setTab("settings")} style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "var(--text-muted)" }}>⚙️</button>
-      </div>
-
-      {/* Stats row */}
-      <div style={{ display: "flex", gap: 10, padding: "0 24px 20px" }}>
-        {[
-          { icon: "🔥", value: streak, label: streak === 1 ? "day streak" : "day streak" },
-          { icon: "📔", value: entries.length, label: "total entries" },
-          { icon: "📅", value: totalDays, label: "days logged" },
-        ].map((s) => (
-          <div key={s.label} style={{
-            flex: 1, background: "var(--surface)", border: "1px solid var(--border)",
-            borderRadius: 12, padding: "10px 10px 8px", textAlign: "center"
-          }}>
-            <div style={{ fontSize: 18, marginBottom: 2 }}>{s.icon}</div>
-            <div style={{ fontFamily: "Lora, serif", fontSize: 20, fontWeight: 600, color: "var(--accent)", lineHeight: 1 }}>{s.value}</div>
-            <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2, fontWeight: 500 }}>{s.label}</div>
+      <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--bg)", borderBottom: "1px solid var(--border)", paddingBottom: 16, marginBottom: 20 }}>
+        <div className="header" style={{ paddingBottom: 16 }}>
+          <div className="header-left">
+            <div className="header-date">Archive</div>
+            <div className="header-title">Your <em>History</em></div>
           </div>
-        ))}
+          <button onClick={() => setTab("settings")} style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "var(--text-muted)" }}>⚙️</button>
+        </div>
+
+        {/* Stats row */}
+        <div style={{ display: "flex", gap: 10, padding: "0 24px" }}>
+          {[
+            { icon: "🔥", value: streak, label: streak === 1 ? "day streak" : "day streak" },
+            { icon: "📔", value: entries.length, label: "total entries" },
+            { icon: "📅", value: totalDays, label: "days logged" },
+          ].map((s) => (
+            <div key={s.label} style={{
+              flex: 1, background: "var(--surface)", border: "1px solid var(--border)",
+              borderRadius: 12, padding: "10px 10px 8px", textAlign: "center"
+            }}>
+              <div style={{ fontSize: 18, marginBottom: 2 }}>{s.icon}</div>
+              <div style={{ fontFamily: "Lora, serif", fontSize: 20, fontWeight: 600, color: "var(--accent)", lineHeight: 1 }}>{s.value}</div>
+              <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2, fontWeight: 500 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {entries.length === 0 ? (
@@ -1093,26 +1108,28 @@ function InsightsPage({ entries, setTab }) {
 
   return (
     <div style={{ flex: 1, overflowY: "auto" }}>
-      <div className="header">
-        <div className="header-left">
-          <div className="header-date">Patterns</div>
-          <div className="header-title">Your <em>Insights</em></div>
+      <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--bg)", borderBottom: "1px solid var(--border)", marginBottom: 20 }}>
+        <div className="header" style={{ paddingBottom: 16 }}>
+          <div className="header-left">
+            <div className="header-date">Patterns</div>
+            <div className="header-title">Your <em>Insights</em></div>
+          </div>
+          <button onClick={() => setTab("settings")} style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "var(--text-muted)" }}>⚙️</button>
         </div>
-        <button onClick={() => setTab("settings")} style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "var(--text-muted)" }}>⚙️</button>
-      </div>
 
-      {/* Tab switcher */}
-      <div style={{ display: "flex", gap: 6, padding: "0 24px 20px" }}>
-        {[{ id: "week", label: "This Week" }, { id: "timeofday", label: "Time of Day" }].map((t) => (
-          <button key={t.id} onClick={() => setView(t.id)} style={{
-            flex: 1, padding: "9px 0", borderRadius: 10, border: "1.5px solid",
-            borderColor: view === t.id ? "var(--accent)" : "var(--border)",
-            background: view === t.id ? "var(--accent-light)" : "var(--surface)",
-            color: view === t.id ? "var(--accent)" : "var(--text-muted)",
-            fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 500, cursor: "pointer",
-            transition: "all 0.2s",
-          }}>{t.label}</button>
-        ))}
+        {/* Tab switcher */}
+        <div style={{ display: "flex", gap: 6, padding: "0 24px 16px" }}>
+          {[{ id: "week", label: "This Week" }, { id: "timeofday", label: "Time of Day" }].map((t) => (
+            <button key={t.id} onClick={() => setView(t.id)} style={{
+              flex: 1, padding: "9px 0", borderRadius: 10, border: "1.5px solid",
+              borderColor: view === t.id ? "var(--accent)" : "var(--border)",
+              background: view === t.id ? "var(--accent-light)" : "var(--surface)",
+              color: view === t.id ? "var(--accent)" : "var(--text-muted)",
+              fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 500, cursor: "pointer",
+              transition: "all 0.2s",
+            }}>{t.label}</button>
+          ))}
+        </div>
       </div>
 
       {!hasData ? (
@@ -1625,7 +1642,7 @@ function AddModal({ onClose, onSave }) {
         </div>
         <textarea
           className="text-input"
-          placeholder="Add a note… (optional if emoji selected)"
+          placeholder="Add a note…"
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={3}
