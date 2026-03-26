@@ -511,14 +511,16 @@ const styles = `
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
   .modal {
+    position: relative;
     width: 100%;
     max-width: 430px;
     margin: 0 auto;
-    background: var(--surface);
-    border-radius: 24px 24px 0 0;
+    background: gold;
+    border-radius: 0;
     padding: 20px 24px 40px;
     animation: slideModal 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
-    max-height: 90vh;
+    height: 100vh;
+    max-height: 100vh;
     overflow-y: auto;
   }
   @keyframes slideModal {
@@ -1626,6 +1628,13 @@ function AddModal({ onClose, onSave }) {
   return (
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal">
+        <button 
+          onClick={onClose} 
+          style={{ position: 'absolute', top: 20, right: 20, background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: 'var(--text)' }}
+          aria-label="Close modal"
+        >
+          ✕
+        </button>
         <div className="modal-handle" />
         <div className="modal-title">How are you <em>feeling?</em></div>
         <div className="emoji-grid">
