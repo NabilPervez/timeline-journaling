@@ -27,13 +27,20 @@ function saveEntries(entries) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
 }
 
+function getLocalDayKey(d = new Date()) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function getTodayKey() {
-  return new Date().toISOString().split("T")[0];
+  return getLocalDayKey();
 }
 
 function formatTime(iso) {
   const d = new Date(iso);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
 function formatHour(iso) {
@@ -51,7 +58,7 @@ function seedDemoEntries() {
 
   function daysAgo(n) {
     const d = new Date(now - n * 86400000);
-    return d.toISOString().split("T")[0];
+    return getLocalDayKey(d);
   }
   function ts(daysBack, hoursBack) {
     return new Date(now - daysBack * 86400000 - hoursBack * MS).toISOString();
@@ -294,6 +301,8 @@ const styles = `
     margin-top: 8px;
     position: relative;
     z-index: 2;
+    background: var(--bg);
+    padding: 4px 0;
   }
   .timeline-group-dot {
     width: 8px; height: 8px;
@@ -851,14 +860,14 @@ function calcStreak(byDate) {
   let streak = 0;
   let cursor = new Date();
   while (true) {
-    const key = cursor.toISOString().split("T")[0];
+    const key = getLocalDayKey(cursor);
     if (byDate[key]) {
       streak++;
       cursor.setDate(cursor.getDate() - 1);
     } else if (key === today) {
       // Allow today to be missing without breaking streak
       cursor.setDate(cursor.getDate() - 1);
-      const yesterday = cursor.toISOString().split("T")[0];
+      const yesterday = getLocalDayKey(cursor);
       if (!byDate[yesterday]) break;
     } else {
       break;
@@ -1041,7 +1050,7 @@ function getLast7Days() {
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    days.push(d.toISOString().split("T")[0]);
+    days.push(getLocalDayKey(d));
   }
   return days;
 }
@@ -1665,7 +1674,7 @@ function checkNotification(wakeHour, sleepHour) {
     : (currentHour + 24) - awakeStart;
     
   const blockIndex = Math.floor(hoursAwakeSoFar / 4);
-  const dateKey = now.toISOString().split("T")[0];
+  const dateKey = getLocalDayKey(now);
   const notifKey = `journal_notif_${dateKey}_block_${blockIndex}`;
 
   if (!localStorage.getItem(notifKey)) {
