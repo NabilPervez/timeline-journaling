@@ -23,6 +23,12 @@ const EMOJIS = [
   { icon: "👻", label: "Playful", color: "#D4AB5A" },
 ];
 
+const EMOJI_CATEGORIES = {
+  Negative: ["Sad", "Angry", "Anxious", "Tired", "Frustrated", "Overwhelmed", "Unwell", "Furious", "Insecure"],
+  Neutral: ["Calm", "Neutral", "Thoughtful"],
+  Positive: ["Happy", "Focused", "Excited", "Grateful", "Confident", "Joyful", "Loved", "Playful"],
+};
+
 const STORAGE_KEY = "timeline_journal_entries";
 
 function loadEntries() {
@@ -174,6 +180,9 @@ const styles = `
     max-width: 430px;
     margin: 0 auto;
     min-height: 100vh;
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
     background: var(--bg);
     position: relative;
     display: flex;
@@ -741,44 +750,49 @@ function groupByHour(entries) {
 
 function TodayPage({ entries, onDelete, setTab }) {
   const bottomRef = useRef(null);
-  const todayEntries = entries
-    .filter((e) => e.date === getTodayKey())
-    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  const sortedEntries = [...entries].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [entries.length]);
 
-  const grouped = groupByHour(todayEntries);
-  const blocks = ["Morning", "Afternoon", "Evening"];
+  const groupedByDate = {};
+  sortedEntries.forEach((e) => {
+    if (!groupedByDate[e.date]) groupedByDate[e.date] = [];
+    groupedByDate[e.date].push(e);
+  });
 
-  const now = new Date();
-  const dayStr = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-  const dayOfWeek = now.toLocaleDateString("en-US", { weekday: "long" });
+  const todayKey = getTodayKey();
+  if (!groupedByDate[todayKey]) groupedByDate[todayKey] = [];
+
+  // Sort dates so oldest is first
+  const dates = Object.keys(groupedByDate).sort((a, b) => new Date(a) - new Date(b));
+
+  const blocks = ["Morning", "Afternoon", "Evening"];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "auto" }}>
       <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--bg)", borderBottom: "1px solid var(--border)", marginBottom: 12 }}>
-        <div className="header" style={{ paddingBottom: todayEntries.length > 0 ? 12 : 20 }}>
+        <div className="header" style={{ paddingBottom: groupedByDate[todayKey].length > 0 ? 12 : 20 }}>
           <div className="header-left">
-            <div className="header-date">{dayStr}</div>
-            <div className="header-title">Your <em>{dayOfWeek}</em></div>
+            <div className="header-date">{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</div>
+            <div className="header-title">Your <em>Timeline</em></div>
           </div>
           <button onClick={() => setTab("settings")} style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "var(--text-muted)" }}>⚙️</button>
         </div>
 
-        {todayEntries.length > 0 && (
+        {groupedByDate[todayKey].length > 0 && (
           <div style={{ padding: "0 24px 8px" }}>
             <div className="entry-count" style={{ marginBottom: 8 }}>
               <span>✦</span>
-              <span><strong>{todayEntries.length}</strong> {todayEntries.length === 1 ? "check-in" : "check-ins"} today</span>
+              <span><strong>{groupedByDate[todayKey].length}</strong> {groupedByDate[todayKey].length === 1 ? "check-in" : "check-ins"} today</span>
             </div>
           </div>
         )}
       </div>
 
       <div className="timeline">
-        {todayEntries.length === 0 ? (
+        {dates.length === 1 && groupedByDate[todayKey].length === 0 ? (
           <div className="timeline-empty">
             <div className="timeline-empty-icon">🌿</div>
             <div className="timeline-empty-title">Your day is a blank canvas.</div>
@@ -787,50 +801,73 @@ function TodayPage({ entries, onDelete, setTab }) {
         ) : (
           <>
             <div className="timeline-line" />
-            {blocks.map((block) =>
-              grouped[block]?.length > 0 ? (
-                <div className="timeline-group" key={block}>
-                  <div className="timeline-group-label">
-                    <div className="timeline-group-dot" />
-                    <div className="timeline-group-time">{block}</div>
-                  </div>
-                  {grouped[block].map((entry, i) => (
-                    <div
-                      className="timeline-entry"
-                      key={entry.id}
-                      style={{ animationDelay: `${i * 0.06}s` }}
-                    >
-                      <div className="entry-time-col">
-                        <div className="entry-time">{formatTime(entry.timestamp)}</div>
-                      </div>
-                      <div className="entry-node">
-                        <div
-                          className="entry-dot"
-                          style={{ background: entry.emoji.color }}
-                          title={entry.emoji.label}
-                        />
-                      </div>
-                      <div
-                        className="entry-card"
-                        style={{ "--entry-color": entry.emoji.color }}
-                      >
-                        <style>{`.entry-card[style*="${entry.emoji.color}"]::before { background: ${entry.emoji.color}; }`}</style>
-                        <div className="entry-header">
-                          <span className="entry-emoji">{entry.emoji.icon}</span>
-                          <span className="entry-label">{entry.emoji.label}</span>
-                          <button
-                            className="entry-delete"
-                            onClick={() => onDelete(entry.id)}
-                            title="Delete"
-                          >✕</button>
-                        </div>
-                        {entry.text && <div className="entry-text">{entry.text}</div>}
-                      </div>
+            {dates.map((dateKey) => {
+              const dayEntries = groupedByDate[dateKey];
+              const grouped = groupByHour(dayEntries);
+              const d = new Date(dateKey + "T12:00:00");
+              const isToday = dateKey === todayKey;
+              const dateLabel = isToday ? "Today" : d.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+
+              return (
+                <div key={dateKey} style={{ marginBottom: 32 }}>
+                  {!isToday && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, position: "relative", zIndex: 2 }}>
+                      <div style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--surface)", border: "2px solid var(--border)", marginLeft: -6 }} />
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", padding: "4px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 20 }}>{dateLabel}</div>
                     </div>
-                  ))}
+                  )}
+                  {blocks.map((block) =>
+                    grouped[block]?.length > 0 ? (
+                      <div className="timeline-group" key={block}>
+                        <div className="timeline-group-label">
+                          <div className="timeline-group-dot" />
+                          <div className="timeline-group-time">{block}</div>
+                        </div>
+                        {grouped[block].map((entry, i) => (
+                          <div
+                            className="timeline-entry"
+                            key={entry.id}
+                            style={{ animationDelay: `${i * 0.06}s` }}
+                          >
+                            <div className="entry-time-col">
+                              <div className="entry-time">{formatTime(entry.timestamp)}</div>
+                            </div>
+                            <div className="entry-node">
+                              <div
+                                className="entry-dot"
+                                style={{ background: entry.emoji.color }}
+                                title={entry.emoji.label}
+                              />
+                            </div>
+                            <div
+                              className="entry-card"
+                              style={{ "--entry-color": entry.emoji.color }}
+                            >
+                              <style>{`.entry-card[style*="${entry.emoji.color}"]::before { background: ${entry.emoji.color}; }`}</style>
+                              <div className="entry-header">
+                                <span className="entry-emoji">{entry.emoji.icon}</span>
+                                <span className="entry-label">{entry.emoji.label}</span>
+                                <button
+                                  className="entry-delete"
+                                  onClick={() => onDelete(entry.id)}
+                                  title="Delete"
+                                >✕</button>
+                              </div>
+                              {entry.text && <div className="entry-text">{entry.text}</div>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null
+                  )}
+                  {dayEntries.length === 0 && isToday && (
+                     <div className="timeline-empty" style={{ padding: "20px 0" }}>
+                        <div className="timeline-empty-title" style={{ fontSize: 16 }}>No check-ins yet today.</div>
+                     </div>
+                  )}
                 </div>
-              ) : null
-            )}
+              );
+            })}
           </>
         )}
         <div ref={bottomRef} className="scroll-anchor" />
@@ -915,7 +952,7 @@ function HistoryPage({ entries, setTab }) {
   };
 
   return (
-    <div style={{ flex: 1, overflowY: "auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "auto" }}>
       <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--bg)", borderBottom: "1px solid var(--border)", paddingBottom: 16, marginBottom: 20 }}>
         <div className="header" style={{ paddingBottom: 16 }}>
           <div className="header-left">
@@ -1110,7 +1147,7 @@ function InsightsPage({ entries, setTab }) {
   const hasData = entries.length > 0;
 
   return (
-    <div style={{ flex: 1, overflowY: "auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "auto" }}>
       <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--bg)", borderBottom: "1px solid var(--border)", marginBottom: 20 }}>
         <div className="header" style={{ paddingBottom: 16 }}>
           <div className="header-left">
@@ -1472,8 +1509,8 @@ function SettingsPage({ dark, setDark, entries, setEntries, wakeHour, sleepHour,
   );
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", padding: "52px 0 120px" }}>
-      <div style={{ padding: "0 24px 24px" }}>
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "auto" }}>
+      <div style={{ padding: "52px 24px 24px" }}>
         <div className="header-date">Configure</div>
         <div style={{ fontFamily: "Lora, serif", fontSize: 28, fontWeight: 600, color: "var(--text)" }}>
           <em style={{ fontStyle: "italic", color: "var(--accent)" }}>Settings</em>
@@ -1753,18 +1790,48 @@ function AddModal({ onClose, onSave }) {
         </button>
         <div className="modal-handle" />
         <div className="modal-title">How are you <em>feeling?</em></div>
-        <div className="emoji-grid">
-          {EMOJIS.map((e) => (
-            <div
-              key={e.label}
-              className={`emoji-option${selectedEmoji?.label === e.label ? " selected" : ""}`}
-              onClick={() => setSelectedEmoji(selectedEmoji?.label === e.label ? null : e)}
-            >
-              <span className="emoji-option-icon">{e.icon}</span>
-              <span className="emoji-option-label">{e.label}</span>
-            </div>
-          ))}
+
+        <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+          {Object.entries(EMOJI_CATEGORIES).map(([cat, labels]) => {
+            const currentCatHasSelected = selectedEmoji && labels.includes(selectedEmoji.label);
+
+            return (
+              <div key={cat} style={{ flex: 1 }}>
+                <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-muted)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>{cat}</div>
+                <select
+                  value={currentCatHasSelected ? selectedEmoji.label : ""}
+                  onChange={(e) => {
+                    const label = e.target.value;
+                    if (!label) {
+                      setSelectedEmoji(null);
+                    } else {
+                      setSelectedEmoji(EMOJIS.find(emoji => emoji.label === label));
+                    }
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "8px",
+                    borderRadius: "var(--radius-sm)",
+                    border: currentCatHasSelected ? "1.5px solid var(--accent)" : "1.5px solid var(--border)",
+                    background: currentCatHasSelected ? "var(--accent-light)" : "var(--bg)",
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: "14px",
+                    color: "var(--text)",
+                    outline: "none",
+                    cursor: "pointer"
+                  }}
+                >
+                  <option value="">Select...</option>
+                  {labels.map(label => {
+                    const emoji = EMOJIS.find(e => e.label === label);
+                    return <option key={label} value={label}>{emoji.icon} {label}</option>
+                  })}
+                </select>
+              </div>
+            );
+          })}
         </div>
+
         <textarea
           className="text-input"
           placeholder="Add a note…"
