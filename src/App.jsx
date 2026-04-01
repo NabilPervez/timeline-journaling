@@ -1073,7 +1073,8 @@ function getLast7Days() {
 }
 
 function InsightsPage({ entries, setTab }) {
-  const [view, setView] = useState("week"); // "week" | "timeofday"
+  const [view, setView] = useState("week"); // "week" | "timeofday" | "emotion"
+  const [selectedEmotionLabel, setSelectedEmotionLabel] = useState("Happy"); // default
 
   const byDate = {};
   entries.forEach((e) => {
@@ -1120,15 +1121,15 @@ function InsightsPage({ entries, setTab }) {
         </div>
 
         {/* Tab switcher */}
-        <div style={{ display: "flex", gap: 6, padding: "0 24px 16px" }}>
-          {[{ id: "week", label: "This Week" }, { id: "timeofday", label: "Time of Day" }].map((t) => (
+        <div style={{ display: "flex", gap: 6, padding: "0 24px 16px", overflowX: "auto", scrollbarWidth: "none" }}>
+          {[{ id: "week", label: "This Week" }, { id: "timeofday", label: "Time of Day" }, { id: "emotion", label: "Emotion Analysis" }].map((t) => (
             <button key={t.id} onClick={() => setView(t.id)} style={{
-              flex: 1, padding: "9px 0", borderRadius: 10, border: "1.5px solid",
+              flex: 1, padding: "9px 12px", borderRadius: 10, border: "1.5px solid",
               borderColor: view === t.id ? "var(--accent)" : "var(--border)",
               background: view === t.id ? "var(--accent-light)" : "var(--surface)",
               color: view === t.id ? "var(--accent)" : "var(--text-muted)",
               fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 500, cursor: "pointer",
-              transition: "all 0.2s",
+              transition: "all 0.2s", whiteSpace: "nowrap"
             }}>{t.label}</button>
           ))}
         </div>
@@ -1215,7 +1216,7 @@ function InsightsPage({ entries, setTab }) {
             );
           })()}
         </div>
-      ) : (
+      ) : view === "timeofday" ? (
         // Time of Day view
         <div style={{ padding: "0 24px 120px" }}>
           <div className="insights-section-label">When do you check in?</div>
@@ -1266,6 +1267,121 @@ function InsightsPage({ entries, setTab }) {
                   Most common mood: {peak.topMood?.label || "—"}
                 </div>
               </div>
+            );
+          })()}
+        </div>
+      ) : (
+        // Emotion Analysis view
+        <div style={{ padding: "0 24px 120px" }}>
+          <div className="insights-section-label">Select Emotion</div>
+          <select 
+            value={selectedEmotionLabel} 
+            onChange={(e) => setSelectedEmotionLabel(e.target.value)}
+            style={{ 
+              width: "100%", padding: "12px 14px", borderRadius: 12, border: "1.5px solid var(--border)",
+              background: "var(--surface)", fontFamily: "DM Sans, sans-serif", fontSize: 15, color: "var(--text)",
+              marginBottom: 24, outline: "none", appearance: "none", cursor: "pointer"
+            }}
+          >
+            {EMOJIS.map(em => (
+              <option key={em.label} value={em.label}>{em.icon} {em.label}</option>
+            ))}
+          </select>
+
+          {(() => {
+            const emotionEntries = entries.filter(e => e.emoji.label === selectedEmotionLabel);
+            const byDateEmotion = {};
+            emotionEntries.forEach(e => {
+              if (!byDateEmotion[e.date]) byDateEmotion[e.date] = 0;
+              byDateEmotion[e.date]++;
+            });
+
+            // 7 day overview
+            const maxDayCount = Math.max(...Object.values(byDateEmotion), 1);
+
+            // most common time block
+            const blockCounts = TIME_BLOCKS.map(block => {
+              const blockEnts = getBlockEntries(emotionEntries, block);
+              return { ...block, count: blockEnts.length };
+            });
+            const peakBlock = [...blockCounts].sort((a, b) => b.count - a.count)[0];
+
+            return (
+              <>
+                <div className="insights-section-label">7-Day Overview ({selectedEmotionLabel})</div>
+                <div style={{ display: "flex", gap: 4, marginBottom: 28 }}>
+                  {last7.map((dateStr) => {
+                    const count = byDateEmotion[dateStr] || 0;
+                    const d = new Date(dateStr + "T12:00:00");
+                    const isToday = dateStr === getTodayKey();
+                    const emojiObj = EMOJIS.find(e => e.label === selectedEmotionLabel);
+                    return (
+                      <div key={dateStr} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                        <div style={{ fontSize: 10, color: isToday ? "var(--accent)" : "var(--text-muted)", fontWeight: 500 }}>
+                          {weekDayLabels[d.getDay()]}
+                        </div>
+                        <div style={{
+                          width: "100%", height: 100, borderRadius: 8, background: "var(--surface2)",
+                          border: `1.5px solid ${isToday ? "var(--accent)" : "var(--border)"}`,
+                          position: "relative", overflow: "hidden", pointerEvents: "none"
+                        }}>
+                          <div style={{
+                            position: "absolute", bottom: 0, left: 0, right: 0,
+                            background: emojiObj.color, opacity: 0.8,
+                            height: `${(count / maxDayCount) * 100}%`,
+                            transition: "height 0.4s"
+                          }} />
+                          <div style={{
+                            position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                            fontSize: 12, fontWeight: 600, color: count > 0 ? "white" : "var(--text-muted)", zIndex: 2
+                          }}>
+                            {count > 0 ? count : ""}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 10, color: "var(--text-muted)" }}>
+                          {d.getDate()}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {peakBlock.count > 0 && (
+                  <>
+                    <div className="insights-section-label">Most Logged Time</div>
+                    <div style={{ padding: "14px 16px", background: "var(--accent-light)", border: "1px solid var(--border)", borderRadius: 12, marginBottom: 28 }}>
+                      <div style={{ fontFamily: "Lora, serif", fontSize: 16, fontWeight: 600, color: "var(--text)" }}>
+                        {peakBlock.label}
+                      </div>
+                      <div style={{ fontSize: 12, color: "var(--accent)", marginTop: 2 }}>
+                        {peakBlock.count} entr{peakBlock.count === 1 ? "y" : "ies"} logged during this time
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div className="insights-section-label">History ({selectedEmotionLabel})</div>
+                {emotionEntries.length === 0 ? (
+                  <div style={{ fontSize: 13, color: "var(--text-muted)", fontStyle: "italic" }}>No entries for {selectedEmotionLabel.toLowerCase()} yet.</div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {emotionEntries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).map((entry) => (
+                      <div key={entry.id} style={{
+                        background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 14px",
+                        display: "flex", flexDirection: "column", gap: 6
+                      }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div style={{ fontSize: 11, fontWeight: 500, color: "var(--text-muted)" }}>
+                            {new Date(entry.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                          </div>
+                          <div style={{ fontSize: 16 }}>{entry.emoji.icon}</div>
+                        </div>
+                        {entry.text && <div style={{ fontSize: 13, fontFamily: "Lora, serif", color: "var(--text)", lineHeight: 1.5 }}>{entry.text}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             );
           })()}
         </div>
